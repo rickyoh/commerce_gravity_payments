@@ -1,0 +1,4 @@
+administer commerce gravity payments:
+  title: 'Administer Commerce Gravity Payments'
+  description: 'Allows access to Commerce Gravity Payments administrative configuration form to manage credentials and integration.'
+  restrict access: true

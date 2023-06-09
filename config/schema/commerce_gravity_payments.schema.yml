@@ -1,0 +1,13 @@
+commerce_gravity_payments.settings:
+  type: config_object
+  label: 'Commerce Gravity Payments settings'
+  mapping:
+    mode:
+      type: string
+      label: 'Mode'
+    oid:
+      type: string
+      label: 'OID'
+    auth_token:
+      type: string
+      label: 'Auth token'

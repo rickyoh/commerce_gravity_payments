@@ -1,0 +1,6 @@
+commerce_gravity_payments.settings:
+  title: 'Gravity Payments settings'
+  route_name: 'commerce_gravity_payments.settings'
+  parent: 'commerce_payment.configuration'
+  description: 'Configure Gravity Payments.'
+  weight: 20

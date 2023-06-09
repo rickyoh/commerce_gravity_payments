@@ -1,0 +1,7 @@
+commerce_gravity_payments.settings:
+  path: '/admin/commerce/config/gravity-payments'
+  defaults:
+    _form: '\Drupal\commerce_gravity_payments\Form\CommerceGravityPaymentsSettings'
+    _title: 'Gravity Payments Settings'
+  requirements:
+    _permission: 'administer commerce gravity payments'

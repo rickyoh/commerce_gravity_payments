@@ -1,0 +1,17 @@
+form:
+  version: 9.121
+  js:
+    js/commerce_gravity_payments.form.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+    - core/jquery
+
+emergepay_sandbox:
+  js:
+    "https://assets.emergepay-sandbox.chargeitpro.com/cip-hosted-fields.js": { type: external, minified: true }
+
+emergepay_production:
+  js:
+    "https://assets.emergepay.chargeitpro.com/cip-hosted-fields.js": { type: external, minified: true }
