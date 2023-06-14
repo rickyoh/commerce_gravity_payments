@@ -65,7 +65,7 @@ class CommerceGravityPaymentsSettings extends ConfigFormBase {
       '#title' => $this->t('Mode'),
       '#default_value' => $config->get('mode'),
       '#required' => TRUE,
-      '#options' => ['test' => t('Test'), 'live' => t('Live')],
+      '#options' => ['test' => $this->t('Test'), 'live' => $this->t('Live')],
     ];
 
     $form['oid'] = [

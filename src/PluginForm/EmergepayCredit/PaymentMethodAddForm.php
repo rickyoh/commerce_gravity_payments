@@ -74,7 +74,7 @@ class PaymentMethodAddForm extends BasePaymentMethodAddForm {
 
     $element['card_number'] = [
       '#type' => 'item',
-      '#title' => t('Card number'),
+      '#title' => $this->t('Card number'),
       '#required' => TRUE,
       '#validated' => TRUE,
       '#markup' => '<div id="cardNumberContainer" class="form-text"></div>',
@@ -82,7 +82,7 @@ class PaymentMethodAddForm extends BasePaymentMethodAddForm {
 
     $element['expiration'] = [
       '#type' => 'item',
-      '#title' => t('Expiration date'),
+      '#title' => $this->t('Expiration date'),
       '#required' => TRUE,
       '#validated' => TRUE,
       '#markup' => '<div id="expirationDateContainer"></div>',
@@ -90,7 +90,7 @@ class PaymentMethodAddForm extends BasePaymentMethodAddForm {
 
     $element['security_code'] = [
       '#type' => 'item',
-      '#title' => t('CVC'),
+      '#title' => $this->t('CVC'),
       '#required' => TRUE,
       '#validated' => TRUE,
       '#markup' => '<div id="securityCodeContainer"></div>',

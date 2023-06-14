@@ -88,7 +88,7 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
 
     $url = Url::fromRoute('commerce_gravity_payments.settings', [], ['absolute' => TRUE]);
 
-    $link = Link::fromTextAndUrl(t('Configure Gravity Payments here'), $url);
+    $link = Link::fromTextAndUrl($this->t('Configure Gravity Payments here'), $url);
 
     if(empty($mode)){
       $form['gravity_payments_warning'] = [
@@ -103,14 +103,14 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
 
     $form['field_styles'] = [
       '#type' => 'textarea',
-      '#title' => t('Field Styles'),
+      '#title' => $this->t('Field Styles'),
       '#default_value' => $this->configuration['field_styles'],
       '#description' => $this->t('A JSON string such as: { "border": "2px solid #000000", "border-radius": "4px", "padding" : "12px 20px" }')
     ];
 
     $form['field_error_styles'] = [
       '#type' => 'textarea',
-      '#title' => t('Field Error Styles'),
+      '#title' => $this->t('Field Error Styles'),
       '#default_value' => $this->configuration['field_error_styles'],
       '#description' => $this->t('A JSON string such as: { "border": "2px solid red" }')
     ];
@@ -131,7 +131,7 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
   public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
     $config =  \Drupal::config('commerce_gravity_payments.settings');
     $url = Url::fromRoute('commerce_gravity_payments.settings', [], ['absolute' => TRUE]);
-    $link = Link::fromTextAndUrl(t('Configure Gravity Payments here'), $url);
+    $link = Link::fromTextAndUrl($this->t('Configure Gravity Payments here'), $url);
     $mode = $config->get('mode');
     if(empty($mode)){
       $form_state->setErrorByName('submit', $this->t('Gravity Payments must be configured before you can set up the payment gateway. @link.' , ['@link' => $link->toString()]));
