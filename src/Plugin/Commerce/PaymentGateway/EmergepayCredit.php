@@ -181,7 +181,7 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
       'billingAddress' => $address->getAddressLine1().' '.$address->getAddressLine2(),
       'billingName' =>  $billing_name,
       'billingPostalCode' => $address->getPostalCode(),
-      'cashierId' => 'Cornish Plus',
+      'cashierId' => 'Drupal Commerce',
       'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
     ];
 
@@ -236,7 +236,7 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
       'uniqueTransId' => $uniqueTransId,
       'amount' => $number,
       'externalTransactionId' => $this->emergepay_client->GUID(), // @todo is this the order id?
-      'cashierId' => 'Cornish Plus',
+      'cashierId' => 'Drupal Commerce',
       'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
     ];
 

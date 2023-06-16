@@ -167,10 +167,8 @@ class EmergepayAch extends OnsitePaymentGatewayBase implements SupportsCreatingP
     $transactionData =  [
       'amount' => $number,
       'externalTransactionId' => $this->emergepay_client->GUID(), // @todo is this the order id?
-      'cashierId' => 'Cornish Plus',
+      'cashierId' => 'Drupal Commerce',
       'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
-      // "checkNumber" => "445",
-      // "accountType" => "Checking"
     ];
 
     $response = $this->emergepay_client->processAchSale($payment_method_token, $transactionData);
