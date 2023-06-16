@@ -1,0 +1,18 @@
+{
+  "name": "drupal/commerce_gravity_payments",
+  "type": "drupal-module",
+  "description": "Provides payment gateway using Gravity Payments Emergepay PCI compliant fields.",
+  "license": "GPL-2.0+",
+  "homepage": "http://drupal.org/project/commerce_gravity_payments",
+  "authors": [
+      {
+          "name": "Eric Hildebrand",
+          "homepage": "https://www.drupal.org/u/rickyoh"
+      }
+  ],
+  "require": {
+      "drupal/commerce": "^2.0",
+      "drupal/core": "^8.8.0 || ^9.0"
+  },
+  "minimum-stability": "dev"
+}
