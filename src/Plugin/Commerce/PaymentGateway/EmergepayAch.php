@@ -2,10 +2,8 @@
 
 namespace Drupal\commerce_gravity_payments\Plugin\Commerce\PaymentGateway;
 
-use Drupal\commerce_payment\CreditCard;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Entity\PaymentMethodInterface;
-use Drupal\commerce_payment\Exception\HardDeclineException;
 use Drupal\commerce_payment\Exception\InvalidResponseException;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
@@ -17,11 +15,8 @@ use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\commerce_gravity_payments\Exception\PaymentFailedException;
 use Drupal\commerce_payment\Exception\PaymentGatewayException;
-
 use Drupal\Core\Url;
-
 use Drupal\Core\Link;
 use Drupal\commerce_gravity_payments\EmergepayClient;
 
@@ -171,7 +166,7 @@ class EmergepayAch extends OnsitePaymentGatewayBase implements SupportsCreatingP
       'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
     ];
 
-    $response = $this->emergepay_client->processAchSale($payment_method_token, $transactionData);
+    $response = $this->emergepay_client->processTransaction($payment_method_token, $transactionData);
 
     if(!isset($response->transactionResponse)){
       throw new PaymentGatewayException('Unable to perform transaction.');
@@ -222,8 +217,8 @@ class EmergepayAch extends OnsitePaymentGatewayBase implements SupportsCreatingP
       }else{
         throw new PaymentGatewayException('Unable to perform transaction.');
       }
-    } catch(exception $e){
-      return new InvalidResponseException($exception->getMessage(), $exception->getCode(), $exception);
+    } catch(\Exception $e){
+      return new InvalidResponseException($e->getMessage(), $e->getCode(), $e);
     }
   }
 
@@ -265,8 +260,8 @@ class EmergepayAch extends OnsitePaymentGatewayBase implements SupportsCreatingP
       }else{
         throw new PaymentGatewayException('Unable to perform transaction.');
       }
-    } catch(exception $e){
-      return new InvalidResponseException($exception->getMessage(), $exception->getCode(), $exception);
+    } catch(\Exception $e){
+      return new InvalidResponseException($e->getMessage(), $e->getCode(), $e);
     }
   }
 

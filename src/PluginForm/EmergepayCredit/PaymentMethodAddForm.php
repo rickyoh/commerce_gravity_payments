@@ -122,8 +122,6 @@ class PaymentMethodAddForm extends PaymentMethodAddFormBase {
       '#attributes' => ['class' => ['emergepay-card-type']],
     ];
 
-
-
     return $element;
   }
 

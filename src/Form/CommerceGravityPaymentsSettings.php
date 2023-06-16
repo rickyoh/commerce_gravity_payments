@@ -2,15 +2,10 @@
 
 namespace Drupal\commerce_gravity_payments\Form;
 
-use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Routing\TrustedRedirectResponse;
-use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Drupal\Core\State\State;
 
 /**
  * Provides a configuration form for Gravity Payments settings.

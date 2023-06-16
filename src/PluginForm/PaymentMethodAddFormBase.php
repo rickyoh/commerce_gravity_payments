@@ -17,7 +17,7 @@ abstract class PaymentMethodAddFormBase extends BasePaymentMethodAddForm {
   /**
    * Gets the emergepay client.
    *
-   * @return obj
+   * @return EmergepayClient
    *   The emergepay client.
    */
   protected function getEmergepayClient() {

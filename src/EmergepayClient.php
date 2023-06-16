@@ -2,6 +2,8 @@
 
 namespace Drupal\commerce_gravity_payments;
 
+use Drupal\commerce_payment\Exception\PaymentGatewayException;
+
 class EmergepayClient {
 
   protected $mode = 'test';
@@ -18,7 +20,7 @@ class EmergepayClient {
     $this->oid = $configuration['oid'];
     $this->auth_token = $configuration['auth_token'];
 
-    if($this->mode == 'live'){
+    if($this->mode === 'live'){
       $this->env_url = $this->prod_env_url;
     }else{
       $this->env_url = $this->test_env_url;
@@ -37,168 +39,186 @@ class EmergepayClient {
     return sprintf('%04X%04X-%04X-%04X-%04X-%04X%04X%04X', mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(16384, 20479), mt_rand(32768, 49151), mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535));
   }
 
-  protected function post($url, $body){
-    try{
+  /**
+   * Sends a POST request using cURL.
+   *
+   * @param string $url The URL to which the request is sent.
+   * @param array $body The request body.
+   * @return mixed The decoded response data.
+   * @throws PaymentGatewayException If an error occurs during the transaction.
+   */
+  protected function post(string $url, array $body): mixed {
+    try {
       $request = curl_init($url);
-      curl_setopt($request, CURLOPT_HEADER, false);
-      curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($request, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Authorization: Bearer ' . $this->auth_token));
-      curl_setopt($request, CURLOPT_POST, true);
-      curl_setopt($request, CURLOPT_POSTFIELDS, json_encode($body));
+      curl_setopt_array($request, [
+          CURLOPT_HEADER => false,
+          CURLOPT_RETURNTRANSFER => true,
+          CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . $this->auth_token],
+          CURLOPT_POST => true,
+          CURLOPT_POSTFIELDS => json_encode($body),
+      ]);
 
       $response = curl_exec($request);
-      $httpcode = curl_getinfo($request, CURLINFO_HTTP_CODE);
+      $httpCode = curl_getinfo($request, CURLINFO_HTTP_CODE);
       
       curl_close($request);
-      return json_decode($response);
+
+      if ($httpCode >= 200 && $httpCode < 300) {
+        return json_decode($response);
+      } else {
+        throw new PaymentGatewayException('Request failed with HTTP code: ' . $httpCode);
+      }
+
     } catch (\Exception $e) {
       throw new PaymentGatewayException('Unable to perform transaction.');
     }
   }
 
-
-  protected function put($url, $body){
+  /**
+   * Sends a PUT request using cURL.
+   *
+   * @param string $url The URL to which the request is sent.
+   * @param array $body The request body.
+   * @return mixed The decoded response data.
+   * @throws PaymentGatewayException If an error occurs during the transaction.
+   */
+  protected function put(string $url, array $body): mixed {
     $payload = json_encode($body);
 
     try{
       $request = curl_init($url);
-      curl_setopt($request, CURLOPT_HEADER, false);
-      curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($request, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($payload), 'Authorization: Bearer ' . $this->auth_token));
-      curl_setopt($request, CURLOPT_CUSTOMREQUEST, "PUT");
-      curl_setopt($request, CURLOPT_POSTFIELDS, $payload);
+      curl_setopt_array($request, [
+        CURLOPT_HEADER => false,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($payload),
+            'Authorization: Bearer ' . $this->auth_token
+        ],
+        CURLOPT_CUSTOMREQUEST => "PUT",
+        CURLOPT_POSTFIELDS => $payload
+      ]);
 
       $response = curl_exec($request);
-      $httpcode = curl_getinfo($request, CURLINFO_HTTP_CODE);
+      $httpCode = curl_getinfo($request, CURLINFO_HTTP_CODE);
 
       curl_close($request);
-      return json_decode($response);
+
+      if ($httpCode >= 200 && $httpCode < 300) {
+        return json_decode($response);
+      } else {
+        throw new PaymentGatewayException('Request failed with HTTP code: ' . $httpCode);
+      }
+
     } catch (\Exception $e) {
       throw new PaymentGatewayException('Unable to perform transaction.');
     }
   }
 
-  public function startTransaction($transaction_type){
+  /**
+   * Start a transaction.
+   *
+   * @param string $transactionType The type of transaction.
+   * @return string|null The transaction token if successful, or null on failure.
+   */
+  public function startTransaction(string $transactionType): ?string {
     $url =  $this->env_url . '/orgs/' . $this->oid . '/transactions/start';
 
-    // @todo error handling
-
-    //base_amount and external_tran_id are required in the fields array.
     $body = array(
         'transactionData' => array(
-          'transactionType' => $transaction_type,
+          'transactionType' => $transactionType,
           'method' => 'hostedFields',
           'submissionType' => 'manual',
         )
       );
 
+    // Make the POST request
     $data = $this->post($url, $body);
 
-    if(isset($data->transactionToken)){
-      return $data->transactionToken;
-    }
-    return false;
+    // Check if the transactionToken is present in the response
+    return $data->transactionToken ?? null;
   }
 
-  public function processTransaction(string $transactionToken, array $transactionData){
+
+  /**
+   * Process a transaction.
+   *
+   * @param string $transactionToken The token for the transaction.
+   * @param array $transactionData The transaction data to be processed.
+   * @return bool|object The response data if successful, or false on failure.
+   */
+  public function processTransaction(string $transactionToken, array $transactionData): bool|object {
     $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/checkout/' . $transactionToken;
 
+    // Create the request body
     $body = [
-      'transactionData' => $transactionData
+        'transactionData' => $transactionData
     ];
 
+    // Make the PUT request
     $data = $this->put($url, $body);
 
-    if(isset($data->status) && $data->status != 200){
-      return false;
-    }
- 
     return $data;
   }
 
 
-  public function processCreditAuth(string $transactionToken, array $transactionData){
-    $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/checkout/' . $transactionToken;
-
-    $body = [
-      'transactionData' => $transactionData
-    ];
-
-    $data = $this->put($url, $body);
-
-    if(isset($data->status) && $data->status != 200){
-      return false;
-    }
- 
-    return $data;
-  }
-
-
-  public function processTokenizedPayment(array $transactionData){
+  /**
+   * Process a tokenized payment.
+   *
+   * @param array $transactionData The transaction data for tokenized payment.
+   * @return object The response data from the payment processing.
+   */
+  public function processTokenizedPayment(array $transactionData): object {
     $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/tokenizedPayment';
 
+    // Create the request body
     $body = [
-      'transactionData' => $transactionData
+        'transactionData' => $transactionData
     ];
 
+    // Make the PUT request
     $data = $this->put($url, $body);
 
-    if(isset($data->status) && $data->status != 200){
-      return false;
-    }
- 
     return $data;
   }
 
-
-  public function processAchSale(string $transactionToken, array $transactionData){
-    $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/checkout/' . $transactionToken;
-
-    $body = [
-      'transactionData' => $transactionData
-    ];
-
-    $data = $this->put($url, $body);
-
-    if(isset($data->status) && $data->status != 200){
-      return false;
-    }
- 
-    return $data;
-  }
-
-
-  public function processTokenizedRefund(array $transactionData){
+  /**
+   * Process a tokenized refund.
+   *
+   * @param array $transactionData The transaction data for tokenized refund.
+   * @return bool|object The response data if successful, or false on failure.
+   */
+  public function processTokenizedRefund(array $transactionData): bool|object {
     $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/tokenizedRefund';
 
-    //uniqueTransId, externalTransactionId, and amount are all required.
-    $body = array(
-      'transactionData' => $transactionData
-    );
+    // Create the request body
+    $body = [
+        'transactionData' => $transactionData
+    ];
 
+    // Make the PUT request
     $data = $this->put($url, $body);
 
-    if(isset($data->status) && $data->status != 200){
-      return false;
-    }
-    
     return $data;
   }
 
-  public function processVoid(array $transactionData){
+  /**
+   * Process a void transaction.
+   *
+   * @param array $transactionData The transaction data for voiding.
+   * @return bool|object The response data if successful, or false on failure.
+   */
+  public function processVoid(array $transactionData): bool|object {
     $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/void';
 
-    //uniqueTransId, externalTransactionId
-    $body = array(
-      'transactionData' => $transactionData
-    );
+    // Create the request body
+    $body = [
+        'transactionData' => $transactionData
+    ];
 
+    // Make the PUT request
     $data = $this->put($url, $body);
 
-    if(isset($data->status) && $data->status != 200){
-      return false;
-    }
-    
     return $data;
   }
 

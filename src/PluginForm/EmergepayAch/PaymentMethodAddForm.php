@@ -101,26 +101,6 @@ class PaymentMethodAddForm extends PaymentMethodAddFormBase {
       ]
     ];
 
-    // $element['last4'] = [
-    //   '#type' => 'hidden',
-    //   '#attributes' => ['class' => ['emergepay-last4']],
-    // ];
-    // $element['exp_month'] = [
-    //   '#type' => 'hidden',
-    //   '#attributes' => ['class' => ['emergepay-exp-month']],
-    // ];
-    // $element['exp_year'] = [
-    //   '#type' => 'hidden',
-    //   '#attributes' => ['class' => ['emergepay-exp-year']],
-    // ];
-
-    // $element['card_type'] = [
-    //   '#type' => 'hidden',
-    //   '#attributes' => ['class' => ['emergepay-card-type']],
-    // ];
-
-
-
     return $element;
   }
 
