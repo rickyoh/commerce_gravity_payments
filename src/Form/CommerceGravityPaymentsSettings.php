@@ -10,7 +10,6 @@ use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Drupal\commerce_square\ErrorHelper;
 use Drupal\Core\State\State;
 
 /**

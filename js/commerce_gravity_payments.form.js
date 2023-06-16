@@ -15,7 +15,7 @@
    * @prop {Drupal~behaviorAttach} attach
    *   Attaches the commerceGravityPaymentsForm behavior.
    *
-   * @see Drupal.commerceSquare
+   * @see Drupal.commerceGravityPayments
    */
   Drupal.behaviors.commerceGravityPaymentsForm = {
     attach: function (context) {
@@ -27,8 +27,6 @@
       const fieldErrorStyles = settings.fieldErrorStyles;
 
       const transactionType = settings.transactionType;
-
-      console.log(transactionType);
 
       $(once('emergepay-processed', '.emergepay-form', context)).each(function () {
 
@@ -108,19 +106,19 @@
           fieldErrorStyles: fieldErrorStyles,
           // (optional) This callback function will be called when there is a validation error for a field.
           onFieldError: function (data) {
-              console.log(data);
+              // console.log(data);
               $('.commerce-checkout-flow').find('input[type=submit]').removeAttr('disabled')
           },
           // (optional) This callback function will be called when a field validation error has been cleared.
           onFieldErrorCleared: function (data) {
-              console.log(data);
+              // console.log(data);
               $('.commerce-checkout-flow').find('input[type=submit]').removeAttr('disabled')
           },
           // (optional) This callback function will be called when all of the requested fields have loaded
           // and are ready to accept user input. This can be useful for things like toggling the status
           // of loading indicators or ignoring clicks on a button until all of the fields are fully loaded
           onFieldsLoaded: function() {
-              console.log('All fields loaded');
+              // console.log('All fields loaded');
           },
           // (required) Callback function that gets called after user successfully enters their information into the form fields and triggers the execution of the `process` function
           onUserAuthorized: function (transactionToken) {
@@ -135,8 +133,8 @@
           // This can be useful for showing a card brand icon to the user, or for determining if the card entered
           // is a credit card or a debit card.
           onBinChange: function(binData) {
-            console.log('bin', binData.bin);
-            console.log('card type', binData.cardType);
+            // console.log('bin', binData.bin);
+            // console.log('card type', binData.cardType);
 
             $('.emergepay-form input.emergepay-card-type').val(binData.cardType);
           }
