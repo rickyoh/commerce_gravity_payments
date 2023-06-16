@@ -18,7 +18,6 @@ class EmergepayClient {
     $this->oid = $configuration['oid'];
     $this->auth_token = $configuration['auth_token'];
 
-
     if($this->mode == 'live'){
       $this->env_url = $this->prod_env_url;
     }else{
@@ -26,7 +25,6 @@ class EmergepayClient {
     }
 
   }
-
   
   //Helper function used to generate a GUID/UUID
   //source: http://php.net/manual/en/function.com-create-guid.php#99425
@@ -39,36 +37,62 @@ class EmergepayClient {
     return sprintf('%04X%04X-%04X-%04X-%04X-%04X%04X%04X', mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(16384, 20479), mt_rand(32768, 49151), mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535));
   }
 
-  public function startCreditSale(){
-    $oid = $this->oid;
-    $authToken = $this->auth_token;
-    $url =  $this->env_url . '/orgs/' . $oid . '/transactions/start';
+  protected function post($url, $body){
+    try{
+      $request = curl_init($url);
+      curl_setopt($request, CURLOPT_HEADER, false);
+      curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
+      curl_setopt($request, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Authorization: Bearer ' . $this->auth_token));
+      curl_setopt($request, CURLOPT_POST, true);
+      curl_setopt($request, CURLOPT_POSTFIELDS, json_encode($body));
+
+      $response = curl_exec($request);
+      $httpcode = curl_getinfo($request, CURLINFO_HTTP_CODE);
+      
+      curl_close($request);
+      return json_decode($response);
+    } catch (\Exception $e) {
+      throw new PaymentGatewayException('Unable to perform transaction.');
+    }
+  }
+
+
+  protected function put($url, $body){
+    $payload = json_encode($body);
+
+    try{
+      $request = curl_init($url);
+      curl_setopt($request, CURLOPT_HEADER, false);
+      curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
+      curl_setopt($request, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($payload), 'Authorization: Bearer ' . $this->auth_token));
+      curl_setopt($request, CURLOPT_CUSTOMREQUEST, "PUT");
+      curl_setopt($request, CURLOPT_POSTFIELDS, $payload);
+
+      $response = curl_exec($request);
+      $httpcode = curl_getinfo($request, CURLINFO_HTTP_CODE);
+
+      curl_close($request);
+      return json_decode($response);
+    } catch (\Exception $e) {
+      throw new PaymentGatewayException('Unable to perform transaction.');
+    }
+  }
+
+  public function startTransaction($transaction_type){
+    $url =  $this->env_url . '/orgs/' . $this->oid . '/transactions/start';
 
     // @todo error handling
 
-    //Set up the request body.
     //base_amount and external_tran_id are required in the fields array.
     $body = array(
         'transactionData' => array(
-          'transactionType' => 'CreditSale',
+          'transactionType' => $transaction_type,
           'method' => 'hostedFields',
           'submissionType' => 'manual',
         )
       );
 
-    //Configure the request
-    $request = curl_init($url);
-    curl_setopt($request, CURLOPT_HEADER, false);
-    curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($request, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Authorization: Bearer ' . $authToken));
-    curl_setopt($request, CURLOPT_POST, true);
-    curl_setopt($request, CURLOPT_POSTFIELDS, json_encode($body));
-
-    //Issue the request and get the response
-    $response = curl_exec($request);
-    curl_close($request);
-
-    $data = json_decode($response);
+    $data = $this->post($url, $body);
 
     if(isset($data->transactionToken)){
       return $data->transactionToken;
@@ -76,81 +100,106 @@ class EmergepayClient {
     return false;
   }
 
-  public function processCreditSale(string $transactionToken, array $transactionData){
-    // Ensure that you replace these with valid values before trying to issue a request
-    $oid = $this->oid;
-    $authToken = $this->auth_token;
+  public function processTransaction(string $transactionToken, array $transactionData){
+    $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/checkout/' . $transactionToken;
 
-    $url = $this->env_url . '/orgs/' . $oid . '/transactions/checkout/' . $transactionToken;
-
-    // Configure the request body
-    // externalTransactionId and amount are required.
     $body = [
       'transactionData' => $transactionData
     ];
 
-    $payload = json_encode($body);
+    $data = $this->put($url, $body);
 
-    //Configure the request
-    $request = curl_init($url);
-    curl_setopt($request, CURLOPT_HEADER, false);
-    curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($request, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($payload), 'Authorization: Bearer ' . $authToken));
-    curl_setopt($request, CURLOPT_CUSTOMREQUEST, "PUT");
-    curl_setopt($request, CURLOPT_POSTFIELDS, $payload);
-
-    //Issue the request and get the result
-    $response = curl_exec($request);
-    $data = json_decode($response);
-    curl_close($request);
-
-
-    if(isset($data->status) && $data->status == 400){
+    if(isset($data->status) && $data->status != 200){
       return false;
     }
  
     return $data;
-    
-
   }
 
 
+  public function processCreditAuth(string $transactionToken, array $transactionData){
+    $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/checkout/' . $transactionToken;
+
+    $body = [
+      'transactionData' => $transactionData
+    ];
+
+    $data = $this->put($url, $body);
+
+    if(isset($data->status) && $data->status != 200){
+      return false;
+    }
+ 
+    return $data;
+  }
+
+
+  public function processTokenizedPayment(array $transactionData){
+    $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/tokenizedPayment';
+
+    $body = [
+      'transactionData' => $transactionData
+    ];
+
+    $data = $this->put($url, $body);
+
+    if(isset($data->status) && $data->status != 200){
+      return false;
+    }
+ 
+    return $data;
+  }
+
+
+  public function processAchSale(string $transactionToken, array $transactionData){
+    $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/checkout/' . $transactionToken;
+
+    $body = [
+      'transactionData' => $transactionData
+    ];
+
+    $data = $this->put($url, $body);
+
+    if(isset($data->status) && $data->status != 200){
+      return false;
+    }
+ 
+    return $data;
+  }
+
 
   public function processTokenizedRefund(array $transactionData){
-    $oid = $this->oid;
-    $authToken = $this->auth_token;
+    $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/tokenizedRefund';
 
-
-    $url = $this->env_url . '/orgs/' . $oid . '/transactions/tokenizedRefund';
-
-    //Configure the request body.
     //uniqueTransId, externalTransactionId, and amount are all required.
     $body = array(
       'transactionData' => $transactionData
     );
 
-    $payload = json_encode($body);
+    $data = $this->put($url, $body);
 
-    //Configure the request
-    $request = curl_init($url);
-    curl_setopt($request, CURLOPT_HEADER, false);
-    curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($request, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($payload), 'Authorization: Bearer ' . $authToken));
-    curl_setopt($request, CURLOPT_CUSTOMREQUEST, "PUT");
-    curl_setopt($request, CURLOPT_POSTFIELDS, $payload);
-
-    //Issue the request and get the result
-    $response = curl_exec($request);
-    curl_close($request);
-
-    $data = json_decode($response);
-
-    if(isset($data->status) && $data->status == 400){
+    if(isset($data->status) && $data->status != 200){
       return false;
     }
     
     return $data;
+  }
 
+  public function processVoid(array $transactionData){
+    $url = $this->env_url . '/orgs/' . $this->oid . '/transactions/void';
+
+    //uniqueTransId, externalTransactionId
+    $body = array(
+      'transactionData' => $transactionData
+    );
+
+    $data = $this->put($url, $body);
+
+    if(isset($data->status) && $data->status != 200){
+      return false;
+    }
+    
+    return $data;
   }
 
 }

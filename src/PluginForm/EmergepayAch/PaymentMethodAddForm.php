@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\commerce_gravity_payments\PluginForm\EmergepayCredit;
+namespace Drupal\commerce_gravity_payments\PluginForm\EmergepayAch;
 
 use Drupal\commerce_payment\PluginForm\PaymentMethodAddForm as BasePaymentMethodAddForm;
 use Drupal\Core\Form\FormStateInterface;
@@ -11,30 +11,27 @@ class PaymentMethodAddForm extends PaymentMethodAddFormBase {
   /**
    * {@inheritdoc}
    */
-  protected function buildCreditCardForm(array $element, FormStateInterface $form_state) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
+    $form = parent::buildConfigurationForm($form, $form_state);
+
+    $form['payment_details'] = $this->buildAchForm($form['payment_details']);
+
+    return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function buildAchForm(array $element) {
     $plugin = $this->plugin;
     $configuration = $plugin->getConfiguration();
-
-    $capture = true;
-    $form = $form_state->getFormObject();
-    $panes = $form->getPanes();
-
-    if(isset($panes['payment_process'])){
-      $payment_process_configuration = $panes['payment_process']->getConfiguration();
-      $capture = (isset($payment_process_configuration['capture'])) ? $payment_process_configuration['capture'] : true;
-    }
-
 
     $element['#attached']['library'][] = $this->getLibrary();
     $element['#attached']['library'][] = 'commerce_gravity_payments/form';
 
-
-    $transaction_type = 'CreditSale';
-    if($capture != true){
-      $transaction_type = 'CreditAuth';
-    }
-
     $emergepay_client = $this->getEmergepayClient();
+
+    $transaction_type = 'AchSale';
     $transaction_token = $emergepay_client->startTransaction($transaction_type);
 
     if($transaction_token == false){
@@ -72,28 +69,28 @@ class PaymentMethodAddForm extends PaymentMethodAddFormBase {
       '#weight' => -200,
     ];
 
-    $element['card_number'] = [
+    $element['account_number'] = [
       '#type' => 'item',
-      '#title' => $this->t('Card number'),
+      '#title' => $this->t('Account number'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#markup' => '<div id="cardNumberContainer" class="form-text"></div>',
+      '#markup' => '<div id="accountNumberContainer" class="form-text"></div>',
     ];
 
-    $element['expiration'] = [
+    $element['routing_number'] = [
       '#type' => 'item',
-      '#title' => $this->t('Expiration date'),
+      '#title' => $this->t('Routing number'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#markup' => '<div id="expirationDateContainer"></div>',
+      '#markup' => '<div id="routingNumberContainer"></div>',
     ];
 
-    $element['security_code'] = [
+    $element['account_holder_name'] = [
       '#type' => 'item',
-      '#title' => $this->t('CVC'),
+      '#title' => $this->t('Account holder name'),
       '#required' => TRUE,
       '#validated' => TRUE,
-      '#markup' => '<div id="securityCodeContainer"></div>',
+      '#markup' => '<div id="accountHolderNameContainer"></div>',
     ];
 
     $element['transaction_token'] = [
@@ -104,23 +101,23 @@ class PaymentMethodAddForm extends PaymentMethodAddFormBase {
       ]
     ];
 
-    $element['last4'] = [
-      '#type' => 'hidden',
-      '#attributes' => ['class' => ['emergepay-last4']],
-    ];
-    $element['exp_month'] = [
-      '#type' => 'hidden',
-      '#attributes' => ['class' => ['emergepay-exp-month']],
-    ];
-    $element['exp_year'] = [
-      '#type' => 'hidden',
-      '#attributes' => ['class' => ['emergepay-exp-year']],
-    ];
+    // $element['last4'] = [
+    //   '#type' => 'hidden',
+    //   '#attributes' => ['class' => ['emergepay-last4']],
+    // ];
+    // $element['exp_month'] = [
+    //   '#type' => 'hidden',
+    //   '#attributes' => ['class' => ['emergepay-exp-month']],
+    // ];
+    // $element['exp_year'] = [
+    //   '#type' => 'hidden',
+    //   '#attributes' => ['class' => ['emergepay-exp-year']],
+    // ];
 
-    $element['card_type'] = [
-      '#type' => 'hidden',
-      '#attributes' => ['class' => ['emergepay-card-type']],
-    ];
+    // $element['card_type'] = [
+    //   '#type' => 'hidden',
+    //   '#attributes' => ['class' => ['emergepay-card-type']],
+    // ];
 
 
 

@@ -1,6 +1,6 @@
 name: Commerce Gravity Payments
 type: module
-description: 'Provides payment gateway using Gravity Payments Hosted Fields approach.'
+description: 'Provides payment gateway using Gravity Payments Emergepay PCI compliant fields.'
 package: Commerce
 core_version_requirement: ^9.3 || ^10
 dependencies:

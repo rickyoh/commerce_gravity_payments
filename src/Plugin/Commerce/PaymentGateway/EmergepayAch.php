@@ -10,12 +10,14 @@ use Drupal\commerce_payment\Exception\InvalidResponseException;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OnsitePaymentGatewayBase;
+use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsRefundsInterface;
+use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsCreatingPaymentMethodsInterface;
 use Drupal\commerce_price\MinorUnitsConverterInterface;
 use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
-
+use Drupal\commerce_gravity_payments\Exception\PaymentFailedException;
 use Drupal\commerce_payment\Exception\PaymentGatewayException;
 
 use Drupal\Core\Url;
@@ -27,21 +29,18 @@ use Drupal\commerce_gravity_payments\EmergepayClient;
  * Provides the On-site payment gateway.
  *
  * @CommercePaymentGateway(
- *   id = "emergepay_credit",
- *   label = "Gravity Payments Emergepay Credit",
- *   display_label = "emergepay credit",
+ *   id = "emergepay_ach",
+ *   label = "Gravity Payments Emergepay ACH",
+ *   display_label = "emergepay ach",
  *   forms = {
- *     "add-payment-method" = "Drupal\commerce_gravity_payments\PluginForm\EmergepayCredit\PaymentMethodAddForm",
+ *     "add-payment-method" = "Drupal\commerce_gravity_payments\PluginForm\EmergepayAch\PaymentMethodAddForm",
  *     "edit-payment-method" = "Drupal\commerce_payment\PluginForm\PaymentMethodEditForm",
  *   },
- *   payment_method_types = {"credit_card"},
- *   credit_card_types = {
- *     "amex", "dinersclub", "discover", "jcb", "maestro", "mastercard", "visa",
- *   },
- *   requires_billing_information = TRUE,
+ *   payment_method_types = {"commerce_emergepay_ach"},
+ *   requires_billing_information = FALSE,
  * )
  */
-class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCreditInterface {
+class EmergepayAch extends OnsitePaymentGatewayBase implements SupportsCreatingPaymentMethodsInterface, SupportsRefundsInterface {
 
   protected $emergepay_config = [
     'mode' => null,
@@ -98,7 +97,6 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
         ]
       ];
     }
-
 
     $form['field_styles'] = [
       '#type' => 'textarea',
@@ -158,7 +156,6 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
     $payment_method = $payment->getPaymentMethod();
     $this->assertPaymentMethod($payment_method);
 
-    // @todo take into account $capture when performing the request.
     $amount = $payment->getAmount();
     $payment_method_token = $payment_method->getRemoteId();
 
@@ -166,28 +163,19 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
     $number = $amount->getNumber();
    
     $remote_id = $payment->getRemoteId();
- 
-    $billing = $payment_method->getBillingProfile();
-
-    /** @var \Drupal\address\Plugin\Field\FieldType\AddressItem $address */
-    $address = $billing->get('address')->first();
-    
-    $billing_name = $address->getGivenName().' '.$address->getFamilyName();
 
     $transactionData =  [
       'amount' => $number,
       'externalTransactionId' => $this->emergepay_client->GUID(), // @todo is this the order id?
-      // Optional
-      'billingAddress' => $address->getAddressLine1().' '.$address->getAddressLine2(),
-      'billingName' =>  $billing_name,
-      'billingPostalCode' => $address->getPostalCode(),
       'cashierId' => 'Cornish Plus',
       'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
+      // "checkNumber" => "445",
+      // "accountType" => "Checking"
     ];
 
-    $response = $this->emergepay_client->processTransaction($payment_method_token, $transactionData);
- 
-    if(($response == false) || (!isset($response->transactionResponse))){
+    $response = $this->emergepay_client->processAchSale($payment_method_token, $transactionData);
+
+    if(!isset($response->transactionResponse)){
       throw new PaymentGatewayException('Unable to perform transaction.');
     }
 
@@ -200,70 +188,19 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
 
     $accountExpiryDate = $response->transactionResponse->accountExpiryDate;
     $maskedAccount = $response->transactionResponse->maskedAccount;
-    $avsResponseCode = $response->transactionResponse->avsResponseCode;
+    $resultMessage = $response->transactionResponse->resultMessage;
     $uniqueTransId = $response->transactionResponse->uniqueTransId;
 
-    $accountExpiryDate = $response->transactionResponse->accountExpiryDate;
 
-    $payment_method->set('card_number', substr($maskedAccount, -4));
+    $payment_method->set('account_number', substr($maskedAccount, -4));
     $payment_method->save();
 
-    $payment->setAmount($amount);
-
-    $next_state = $capture ? 'completed' : 'authorization';
-    $payment->setState($next_state);
-
-    $payment->setRemoteId($uniqueTransId);
-    $payment->setAvsResponseCode($avsResponseCode);
-    $payment->save();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function capturePayment(PaymentInterface $payment, Price $amount = NULL) {
-    $this->assertPaymentState($payment, ['authorization']);
-
-    $amount = $amount ?: $payment->getAmount();
-    $number = $amount->getNumber();
-   
-    $uniqueTransId = $payment->getRemoteId();
-    if(!$uniqueTransId){
-      throw new PaymentGatewayException('Unable to perform transaction.');
-    }
-
-    $transactionData =  [
-      'uniqueTransId' => $uniqueTransId,
-      'amount' => $number,
-      'externalTransactionId' => $this->emergepay_client->GUID(), // @todo is this the order id?
-      'cashierId' => 'Cornish Plus',
-      'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
-    ];
-
-    $response = $this->emergepay_client->processTokenizedPayment($transactionData);
-    
-    if(($response == false) || (!isset($response->transactionResponse))){
-      throw new PaymentGatewayException('Unable to perform transaction.');
-    }
-    
-    $resultMessage = $response->transactionResponse->resultMessage;
-    $resultStatus = $response->transactionResponse->resultStatus;
-
-    if($resultMessage != 'Approved'){
-      throw new PaymentGatewayException('Unable to perform transaction.');
-    }
-
-    $accountExpiryDate = $response->transactionResponse->accountExpiryDate;
-    $maskedAccount = $response->transactionResponse->maskedAccount;
-    $avsResponseCode = $response->transactionResponse->avsResponseCode;
-    $uniqueTransId = $response->transactionResponse->uniqueTransId;
-
-    $accountExpiryDate = $response->transactionResponse->accountExpiryDate;
-
-    $payment->setRemoteId($uniqueTransId);
-    $payment->setAvsResponseCode($avsResponseCode);
     $payment->setState('completed');
     $payment->setAmount($amount);
+    $payment->save();
+
+    $payment->setRemoteId($uniqueTransId);
+
     $payment->save();
   }
 
@@ -340,19 +277,10 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
    */
   public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
     $required_keys = [
-      'transaction_token', 'card_type',
+      'transaction_token',
     ];
-    foreach ($required_keys as $required_key) {
-      if (empty($payment_details[$required_key])) {
-        throw new \InvalidArgumentException(sprintf('$payment_details must contain the %s key.', $required_key));
-      }
-    }
 
     $payment_method->setReusable(FALSE);
-    $payment_method->card_type = $payment_details['card_type'];
-    // $payment_method->card_number = $payment_details['last4'];
-    // $payment_method->card_exp_month = $payment_details['exp_month'];
-    $payment_method->card_exp_year = $payment_details['exp_year'];
     $remote_id = $payment_details['transaction_token'];
     $payment_method->setRemoteId($remote_id);
 
@@ -375,19 +303,6 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
   public function updatePaymentMethod(PaymentMethodInterface $payment_method) {
     // Perform the update request here, throw an exception if it fails.
     // See \Drupal\commerce_payment\Exception for the available exceptions.
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function buildAvsResponseCodeLabel($avs_response_code, $card_type) {
-    if ($card_type == 'dinersclub' || $card_type == 'jcb') {
-      if ($avs_response_code == 'A') {
-        return $this->t('Approved.');
-      }
-      return NULL;
-    }
-    return parent::buildAvsResponseCodeLabel($avs_response_code, $card_type);
   }
 
 }

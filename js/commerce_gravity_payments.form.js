@@ -26,7 +26,9 @@
       const fieldStyles = settings.fieldStyles;
       const fieldErrorStyles = settings.fieldErrorStyles;
 
+      const transactionType = settings.transactionType;
 
+      console.log(transactionType);
 
       $(once('emergepay-processed', '.emergepay-form', context)).each(function () {
 
@@ -35,7 +37,7 @@
           // (required) Used to set up each field
           transactionToken: transactionToken,
           // (required) The type of transaction to run
-          transactionType: "CreditSale",
+          transactionType: transactionType,
           // (optional) Configure which fields to use and the id's of the elements to append each field to
           fieldSetUp: {
               // These fields are valid for credit card transactions
@@ -123,9 +125,11 @@
           // (required) Callback function that gets called after user successfully enters their information into the form fields and triggers the execution of the `process` function
           onUserAuthorized: function (transactionToken) {
               var el = $('.emergepay-form input.emergepay-transaction-token');
-              el.val(transactionToken)
-              var form = el.closest('form');
-              form.submit();  
+              if(transactionToken){
+                el.val(transactionToken)
+                var form = el.closest('form');
+                form.submit();  
+              }
           },
           // (optional) Callback function that gets called after the user enters the first 6 digits of their card number.
           // This can be useful for showing a card brand icon to the user, or for determining if the card entered
@@ -140,9 +144,9 @@
 
         $('.commerce-checkout-flow').on('submit', function( event ) {
           var form = $(this)
-          var transaction_token = form.find('input.emergepay-transaction-token').val();
+          var transactionToken = form.find('input.emergepay-transaction-token').val();
 
-          if(transaction_token.length == 0){
+          if(transactionToken.length == 0){
             event.preventDefault();
             $('.commerce-checkout-flow').find('input[type=submit]').attr('disabled', 'disabled')
             hosted.process();
