@@ -41,6 +41,7 @@ class EmergepayAch extends OnsitePaymentGatewayBase implements SupportsCreatingP
     'mode' => null,
     'oid' => null,
     'auth_token' => null,
+    'cashier' => null,
   ];
   protected $emergepay_client = [];
 
@@ -56,6 +57,7 @@ class EmergepayAch extends OnsitePaymentGatewayBase implements SupportsCreatingP
       'mode' => $emergepay_config->get('mode'),
       'oid' => $emergepay_config->get('oid'),
       'auth_token' => $emergepay_config->get('auth_token'),
+      'cashier' => $emergepay_config->get('cashier'),
     ];
     $this->emergepay_client = new EmergepayClient($this->emergepay_config);
   }
@@ -162,7 +164,7 @@ class EmergepayAch extends OnsitePaymentGatewayBase implements SupportsCreatingP
     $transactionData =  [
       'amount' => $number,
       'externalTransactionId' => $this->emergepay_client->GUID(), // @todo is this the order id?
-      'cashierId' => 'Drupal Commerce',
+      'cashierId' => $this->emergepay_config['cashier'],
       'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
     ];
 
@@ -207,6 +209,8 @@ class EmergepayAch extends OnsitePaymentGatewayBase implements SupportsCreatingP
     $transaction_data = [
       'uniqueTransId' => $remote_id,
       'externalTransactionId' => $this->emergepay_client->GUID(),
+      'cashierId' => $this->emergepay_config['cashier'],
+      'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
     ];
 
     try{
@@ -240,6 +244,8 @@ class EmergepayAch extends OnsitePaymentGatewayBase implements SupportsCreatingP
       'uniqueTransId' => $remote_id,
       'externalTransactionId' => $this->emergepay_client->GUID(),
       'amount' => $number,
+      'cashierId' => $this->emergepay_config['cashier'],
+      'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
     ];
 
     try{

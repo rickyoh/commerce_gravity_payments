@@ -42,6 +42,7 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
     'mode' => null,
     'oid' => null,
     'auth_token' => null,
+    'cashier' => null,
   ];
   protected $emergepay_client = [];
 
@@ -57,6 +58,7 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
       'mode' => $emergepay_config->get('mode'),
       'oid' => $emergepay_config->get('oid'),
       'auth_token' => $emergepay_config->get('auth_token'),
+      'cashier' => $emergepay_config->get('cashier'),
     ];
     $this->emergepay_client = new EmergepayClient($this->emergepay_config);
   }
@@ -153,7 +155,7 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
     $payment_method = $payment->getPaymentMethod();
     $this->assertPaymentMethod($payment_method);
 
-    // @todo take into account $capture when performing the request.
+    // $capture is taken into account during PaymentMethodAddForm
     $amount = $payment->getAmount();
     $payment_method_token = $payment_method->getRemoteId();
 
@@ -171,12 +173,12 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
 
     $transactionData =  [
       'amount' => $number,
-      'externalTransactionId' => $this->emergepay_client->GUID(), // @todo is this the order id?
+      'externalTransactionId' => $this->emergepay_client->GUID(),
       // Optional
       'billingAddress' => $address->getAddressLine1().' '.$address->getAddressLine2(),
       'billingName' =>  $billing_name,
       'billingPostalCode' => $address->getPostalCode(),
-      'cashierId' => 'Drupal Commerce',
+      'cashierId' => $this->emergepay_config['cashier'],
       'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
     ];
 
@@ -231,7 +233,7 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
       'uniqueTransId' => $uniqueTransId,
       'amount' => $number,
       'externalTransactionId' => $this->emergepay_client->GUID(), // @todo is this the order id?
-      'cashierId' => 'Drupal Commerce',
+      'cashierId' => $this->emergepay_config['cashier'],
       'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
     ];
 
@@ -272,6 +274,8 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
     $transaction_data = [
       'uniqueTransId' => $remote_id,
       'externalTransactionId' => $this->emergepay_client->GUID(),
+      'cashierId' => $this->emergepay_config['cashier'],
+      'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
     ];
 
     try{
@@ -305,6 +309,8 @@ class EmergepayCredit extends OnsitePaymentGatewayBase implements EmergepayCredi
       'uniqueTransId' => $remote_id,
       'externalTransactionId' => $this->emergepay_client->GUID(),
       'amount' => $number,
+      'cashierId' => $this->emergepay_config['cashier'],
+      'transactionReference' => sprintf("%03d", $payment->getOrderId()), // emergepay requires 3 characters
     ];
 
     try{

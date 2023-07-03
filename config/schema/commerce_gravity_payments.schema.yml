@@ -11,3 +11,6 @@ commerce_gravity_payments.settings:
     auth_token:
       type: string
       label: 'Auth token'
+    cashier:
+      type: string
+      label: 'Cashier'

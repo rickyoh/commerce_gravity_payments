@@ -76,6 +76,14 @@ class CommerceGravityPaymentsSettings extends ConfigFormBase {
       '#required' => TRUE,
       '#rows' => 1,
     ];
+
+    $form['cashier'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Cashier'),
+      '#default_value' => ($config->get('cashier')) ? $config->get('cashier') : $this->t('Drupal Commerce'),
+      '#required' => TRUE,
+      '#description' => $this->t('The "Cashier" that is sent through to Gravity Payments on each transaction'),
+    ];
   
     return $form;
   }
@@ -88,7 +96,8 @@ class CommerceGravityPaymentsSettings extends ConfigFormBase {
     $config
       ->set('mode', $form_state->getValue('mode'))
       ->set('oid', $form_state->getValue('oid'))
-      ->set('auth_token', $form_state->getValue('auth_token'));
+      ->set('auth_token', $form_state->getValue('auth_token'))
+      ->set('cashier', $form_state->getValue('cashier'));
     $config->save();
 
     parent::submitForm($form, $form_state);

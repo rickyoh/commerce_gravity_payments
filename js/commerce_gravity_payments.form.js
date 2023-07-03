@@ -126,6 +126,7 @@
               if(transactionToken){
                 el.val(transactionToken)
                 var form = el.closest('form');
+                form.addClass('emergepay-submitting')
                 form.submit();  
               }
           },
